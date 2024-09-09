@@ -1,16 +1,7 @@
-const {Pool} = require('pg');
+const { connectToDatabase } = require('./assets/scripts/db-connector');
+const pool = connectToDatabase();
 
 const database_info = {};
-
-const pool = new Pool({
-  host: 'localhost',
-  user: 'postgres',
-  database: 'employee_tracker'
-  },
-  console.log('Connected to database employee_tracker')
-)
-
-// pool.connect(); //<-- What does this do?
  
 pool.query('SELECT id, name FROM departments', [])
   .then(results => {
