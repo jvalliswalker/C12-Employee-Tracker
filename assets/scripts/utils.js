@@ -12,21 +12,15 @@ const writeFile = (filePath, data, writeType='append') => {
   }
 }
 
-const readFile = (filePath, asJSON=false) => {
+const readFile = (filePath) => {
   return fs.readFileSync(filePath, 'utf8', (error, data) => {
     if(error){
       console.log(error);
       return;
     }
     else{      
-      if(asJSON == true){
-        return JSON.parse(data);
-      }
-      else {
         return data;
-      }
     }
-
   })
 }
 
