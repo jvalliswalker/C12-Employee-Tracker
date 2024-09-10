@@ -3,22 +3,17 @@ const { readFile } = require('./utils');
 const path = require('path');
 const localpath = __dirname.replace(/assets.scripts/, '');
 
-// const credentials = () => {
-//   const data = readFile(
-//     path.join(localpath, 'credentials/credentials.json'),
-//     true
-//   )
-
-//   const config = new Config(data);
-
-//   return config;
-// };
+require('dotenv').config({
+  override: true,
+  path: path.join(localpath, 'postgres.env')
+});
 
 const connectToDatabase = () => {
   const newPool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'employee_tracker'
+    user: process.env.USER,
+    password: process.env.PASSWORD,
+    host: process.env.HOST,
+    database: process.env.DATABASE
   },
   console.log('Connected to database employee_tracker')
   );
