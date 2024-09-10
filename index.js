@@ -1,22 +1,14 @@
-const { connectToDatabase } = require('./assets/scripts/db-connector');
-const pool = connectToDatabase();
+const inquirer = require("inquirer");
+const runSetup = require("./assets/scripts/setup.js");
 
-const database_info = {};
- 
-pool.query('SELECT id, name FROM departments', [])
-  .then(results => {
-    const {rows} = results;
+runSetup().then((pool) => {
+  console.log(pool);
 
-    const departments_map = {}
+  pool
+    .query("SELECT id, first_name, last_name, role_id FROM employees", [])
+    .then((results) => {
+      const { rows } = results;
 
-    for(const row of rows){
-      departments_map[row.name] = row.id;
-    }
-
-    database_info['departments'] = {
-      'rows' : rows,
-      'map': departments_map
-    };
-
-    console.log(database_info.departments.rows);
-  })
+      console.log(rows);
+    });
+});
