@@ -1,89 +1,93 @@
 const { readFile } = require("./utils.js");
-const { connectToDatabase } = require("./db-connector.js");
-const pool = connectToDatabase();
 
-// Global constant for sql data
-const seedData = {};
-
-// Read roles data from JSON, parse and store
-seedData.rolesJSON = JSON.parse(readFile("../../db/roles.json", true));
-
-// Read employees data from JSON, parse and store
-seedData.employeesJSON = JSON.parse(readFile("../../db/employees.json", true));
-
-// Begin with deleting roles/employee data, if present
-pool
-  .query("DELETE FROM employees")
-  .then(() => {
-    return pool.query("DELETE FROM roles");
-  })
-  .then(() => {
-    // Query data from departments created via seeds.sql
-    return pool.query("SELECT id, name FROM departments");
-  })
-  .then((data) => {
-    // Store departments data in seedData object
-    const { rows } = data;
-    seedData.departmentsMap = rows;
-
-    // Begin constructtion of roles data for insert
-    const roleValuesForInsert = [];
-
-    // Iterate through roles data from json file
-    for (const row of seedData.rolesJSON) {
-      // Populate department_id values for roles from department data
-      row.department_id = mapIdField(
-        "name",
-        row.department_id,
-        "id",
-        seedData.departmentsMap
+function seedData(pool){
+  // Global constant for sql data
+  const seedData = {};
+  
+  // Read roles data from JSON, parse and store
+  seedData.rolesJSON = JSON.parse(readFile("./db/roles.json", true));
+  
+  // Read employees data from JSON, parse and store
+  seedData.employeesJSON = JSON.parse(readFile("./db/employees.json", true));
+  
+  // Begin with deleting roles/employee data, if present
+  pool
+    .query("DELETE FROM employees")
+    .then(() => {
+      return pool.query("DELETE FROM roles");
+    })
+    .then(() => {
+      // Query data from departments created via seeds.sql
+      return pool.query("SELECT id, name FROM departments");
+    })
+    .then((data) => {
+      // Store departments data in seedData object
+      const { rows } = data;
+      seedData.departmentsMap = rows;
+  
+      // Begin constructtion of roles data for insert
+      const roleValuesForInsert = [];
+  
+      // Iterate through roles data from json file
+      for (const row of seedData.rolesJSON) {
+        // Populate department_id values for roles from department data
+        row.department_id = mapIdField(
+          "name",
+          row.department_id,
+          "id",
+          seedData.departmentsMap
+        );
+  
+        // Format roles data for psql insert
+        const rowValues = [row.title, row.salary, row.department_id];
+  
+        // Push values to var for later insert
+        roleValuesForInsert.push(rowValues);
+      }
+  
+      // Insert roles
+      return pool.query(
+        `INSERT INTO roles (title, salary, department_id) VALUES ${formatValues(
+          roleValuesForInsert
+        )}`
       );
+    })
+    .then(() => {
+      // Query inserted roles for Id values
+      return pool.query("SELECT id, title FROM roles");
+    })
+    .then((data) => {
+      // Locally store roles data
+      const { rows } = data;
+  
+      // Begin construction of employees data for insert
+      const employeeValuesForInsert = [];
+  
+      // Iterate through employees data from json file
+      for (const row of seedData.employeesJSON) {
+        // Populate role_id field from queried roles data
+        row.role_id = mapIdField("title", row.role_id, "id", rows);
+  
+        // Add row data to to-insert array
+        employeeValuesForInsert.push([
+          row.first_name,
+          row.last_name,
+          row.role_id,
+        ]);
+      }
+  
+      // Insert employees
+      return pool.query(
+        `INSERT INTO employees (first_name, last_name, role_id) VALUES ${formatValues(
+          employeeValuesForInsert
+        )}`
+      );
+    })
+    .then(() => {
+      return true;
+    })
+}
 
-      // Format roles data for psql insert
-      const rowValues = [row.title, row.salary, row.department_id];
-
-      // Push values to var for later insert
-      roleValuesForInsert.push(rowValues);
-    }
-
-    // Insert roles
-    return pool.query(
-      `INSERT INTO roles (title, salary, department_id) VALUES ${formatValues(
-        roleValuesForInsert
-      )}`
-    );
-  })
-  .then(() => {
-    // Query inserted roles for Id values
-    return pool.query("SELECT id, title FROM roles");
-  })
-  .then((data) => {
-    // Locally store roles data
-    const { rows } = data;
-
-    // Begin construction of employees data for insert
-    const employeeValuesForInsert = [];
-
-    // Iterate through employees data from json file
-    for (const row of seedData.employeesJSON) {
-      // Populate role_id field from queried roles data
-      row.role_id = mapIdField("title", row.role_id, "id", rows);
-
-      // Add row data to to-insert array
-      employeeValuesForInsert.push([
-        row.first_name,
-        row.last_name,
-        row.role_id,
-      ]);
-    }
-
-    // Insert employees
-    return pool.query(
-      `INSERT INTO employees (first_name, last_name, role_id) VALUES ${formatValues(
-        employeeValuesForInsert
-      )}`
-    );
-  });
 
 // Helper function, matches id from sourceData base on value from row to update
 // - matchField: the field that should be refernced from sourceData against matchValue
@@ -135,3 +139,6 @@ function formatValues(values) {
   // Return all formatted strings, joined with commas
   return formattedStrings.join(",");
 }
+
+
+module.exports = seedData;
