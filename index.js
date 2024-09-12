@@ -30,10 +30,7 @@ function promptMain(pool) {
       return answerHandler;
     })
     .then((answerHandler) => {
-      console.log('answerHandler.followupQuestions');
-      console.log(answerHandler.followupQuestions);
       if (answerHandler.followupQuestions) {
-        console.log('calling promptFollowup');
         return answerHandler.promptFollowup();
       } else {
         return answerHandler;
@@ -43,7 +40,12 @@ function promptMain(pool) {
       return answerHandler.runCRUD();
     })
     .then((answerHandler) => {
-      answerHandler.displayCRUDResults();
+      if(answerHandler.completionStatement){
+        console.log(answerHandler.completionStatement);
+      }
+      else{
+        answerHandler.displayCRUDResults();
+      }
       promptMain(pool);
     });
 }

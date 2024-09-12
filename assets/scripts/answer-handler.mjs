@@ -4,10 +4,8 @@ class AnswerHandler {
   constructor(answer, pool){
     this.answer = answer;
     this.pool = pool;
-    this.followupQuestionData;
     this.answerRouter = this.router[answer];
     this.CRUDStatement = this.answerRouter.statement;
-    // this.relatedData = {};
     this.relatedDataMap = {};
   }
 
@@ -41,8 +39,9 @@ class AnswerHandler {
           message: 'Enter the department name'
         }
       ],
-      statement: 'INSERT INTO departments VALUES',
-      statementType: 'insert'
+      statement: 'INSERT INTO departments',
+      statementType: 'insert',
+      completionStatement: 'New department added to database'
     },
     'Add a role': {
       questions: [
@@ -64,7 +63,8 @@ class AnswerHandler {
           relatedDataName: 'departments'
         }
       ],
-      statement: 'INSERT INTO roles VALUES',
+      statement: 'INSERT INTO roles',
+      completionStatement: 'New role added to database',
       statementType: 'insert',
       relatedDataQueries: {
         departments: 'SELECT id, name FROM departments'
@@ -97,8 +97,9 @@ class AnswerHandler {
           relatedDataName: 'employees'
         }
       ],
-      statement: 'INSERT INTO',
+      statement: 'INSERT INTO employees',
       statementType: 'insert',
+      completionStatement: 'New employee added to database',
       relatedDataQueries: {
         roles: 'SELECT id, title FROM roles',
         employees: 'SELECT id, first_name, last_name FROM employees',
@@ -134,7 +135,7 @@ class AnswerHandler {
     for(const question of questions){
       if(question.type == 'list'){
         const keys = Object.keys(this.relatedDataMap[question.relatedDataName]);
-        question.choices = [...keys];
+        question.choices = [].concat(question.choices, keys);
       }
     }
   }
@@ -157,10 +158,32 @@ class AnswerHandler {
   askFollowupQuestions(){
     return inquirer.prompt(this.followupQuestions)
     .then((answers) => {
+
+      for(const question of Object.keys(answers)){
+        const answer = answers[question];
+        let relatedMapKey;
+        if(question == 'role_id'){
+          relatedMapKey = 'roles';
+        }
+        else if(question == 'manager_id'){
+          relatedMapKey = 'employees';
+        }
+        else if(question == 'department_id'){
+          relatedMapKey = 'departments';
+        }
+
+        if(relatedMapKey){
+          answers[question] = this.relatedDataMap[relatedMapKey][answer];
+        }
+      }
+
       this.followupAnswers = answers;
+      console.log(answers)
       return this;
     });
   }
+
+
 
   promptFollowup(){
     if(this.answerRouter.relatedDataQueries){
@@ -177,7 +200,33 @@ class AnswerHandler {
     }
   }
 
+  formatValuesForInsert(values){
+
+    const formattedValues = [];
+    
+    for(const value of values){
+      if(typeof value == 'string'){
+        formattedValues.push(`'${value}'`);
+      }
+      else{
+        formattedValues.push(value)
+      }
+    }
+
+    return formattedValues.join(',');
+  }
+
   runCRUD() {
+
+    if(this.followupAnswers){
+
+      const fields = Object.keys(this.followupAnswers).join(',');
+      const values = this.formatValuesForInsert(Object.values(this.followupAnswers));
+      const formattedCRUDStatement = `${this.CRUDStatement} (${fields}) VALUES (${values}) `;
+      this.completionStatement = this.answerRouter.completionStatement;
+      this.CRUDStatement = formattedCRUDStatement;
+    }
+
     return this.pool.query(this.CRUDStatement)
       .then((data) => {
         this.CRUDStatementData = data.rows;
