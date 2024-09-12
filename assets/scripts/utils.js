@@ -1,4 +1,4 @@
-const fs = require('fs');
+import fs from 'fs';
 
 const writeFile = (filePath, data, writeType='append') => {
   if(writeType == 'append'){
@@ -24,4 +24,5 @@ const readFile = (filePath) => {
   })
 }
 
-module.exports = { readFile, writeFile }
+export { readFile, writeFile }
+// module.exports = { readFile, writeFile }

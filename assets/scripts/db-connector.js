@@ -1,15 +1,18 @@
-const { Pool } = require('pg');
-const { readFile } = require('./utils');
-const path = require('path');
+import pg from 'pg';
+import path from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const localpath = __dirname.replace(/assets.scripts/, '');
+import dotenv from 'dotenv' 
 
-require('dotenv').config({
+dotenv.config({
   override: true,
   path: path.join(localpath, 'postgres.env')
 });
 
 const connectToDatabase = () => {
-  const newPool = new Pool({
+  const newPool = new pg.Pool({
     user: process.env.USER,
     password: process.env.PASSWORD,
     host: process.env.HOST,
@@ -23,4 +26,4 @@ const connectToDatabase = () => {
   return newPool;
 }
 
-module.exports = { connectToDatabase }
+export { connectToDatabase }

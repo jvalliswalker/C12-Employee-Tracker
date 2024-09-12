@@ -1,8 +1,7 @@
-const inquirer = require('inquirer');
-const seedData = require('./seeds.js');
-const { readFile, writeFile } = require('./utils.js');
-const { connectToDatabase } = require('./db-connector.js');
-
+import inquirer from 'inquirer';
+import { seedData } from './seeds.js';
+import { readFile, writeFile } from './utils.js';
+import { connectToDatabase } from './db-connector.js';
 
 async function setEnvironmentalVariables(){
   const questionsCredentials  = [
@@ -64,4 +63,5 @@ async function setupEnvironment(setupNeeded) {
   return;
 }
 
-module.exports = runSetup;
+export { runSetup }
+// module.exports = runSetup;

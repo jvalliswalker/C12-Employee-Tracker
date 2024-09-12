@@ -1,4 +1,4 @@
-const { readFile } = require("./utils.js");
+import { readFile } from "./utils.js";
 
 function seedData(pool){
   // Global constant for sql data
@@ -141,4 +141,4 @@ function formatValues(values) {
 }
 
 
-module.exports = seedData;
+export { seedData };

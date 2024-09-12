@@ -1,6 +1,6 @@
-const runSetup = require("./assets/scripts/setup.js");
-const inquirer = require("inquirer");
-const AnswerHandler = require("./assets/scripts/answer-handler");
+import inquirer from "inquirer";
+import { runSetup } from "./assets/scripts/setup.js";
+import { AnswerHandler } from "./assets/scripts/answer-handler.mjs";
 
 const questionsMain = [
   {
@@ -30,7 +30,10 @@ function promptMain(pool) {
       return answerHandler;
     })
     .then((answerHandler) => {
+      console.log('answerHandler.followupQuestions');
+      console.log(answerHandler.followupQuestions);
       if (answerHandler.followupQuestions) {
+        console.log('calling promptFollowup');
         return answerHandler.promptFollowup();
       } else {
         return answerHandler;
