@@ -6,6 +6,7 @@ class AnswerHandler {
     this.pool = pool;
     this.answerRouter = this.router[answer];
     this.CRUDStatement = this.answerRouter.statement;
+    this.statementType = this.answerRouter.statementType;
     this.relatedDataMap = {};
   }
 
@@ -24,7 +25,7 @@ class AnswerHandler {
     "View all employees": {
       statement: (
         'SELECT e.id AS "Employee Id", e.first_name AS "First Name", e.last_name AS "Last Name", '+
-        'r.title AS "Role", ee.first_name AS "Manager First Name", ee.last_name AS "Manager Last Name" '+
+        'r.title AS "Title", r.salary AS "Salary", concat_ws(\' \',ee.first_name, ee.last_name) AS "Manager" '+
         'FROM employees e '+
         'INNER JOIN roles r ON e.role_id = r.id '+
         'LEFT JOIN employees ee ON '+
@@ -106,9 +107,31 @@ class AnswerHandler {
       }
     },
     "Update an employee role": {
-      // questions: [],
-      statement: '',
-      statementType: 'update'
+      questions: [
+        {
+          name: 'employee_id',
+          message: 'Select an employee',
+          choices: [],
+          requiresChoicePopulation: true,
+          relatedDataName: 'employees',
+          type: 'list'
+        },
+        {
+          name: 'role_id',
+          message: 'Select a new role',
+          choices: [],
+          requiresChoicePopulation: true,
+          relatedDataName: 'roles',
+          type: 'list'
+        }
+      ],
+      statement: 'UPDATE employees',
+      statementType: 'update',
+      completionStatement: 'New employee role updated',
+      relatedDataQueries: {
+        employees: 'SELECT id, first_name, last_name FROM employees',
+        roles: 'SELECT id, title FROM roles'
+      }
     }
   };
 
@@ -124,7 +147,7 @@ class AnswerHandler {
       return row.title;
     }
     else{
-      return row.name;
+      throw new Error(`table name not found for ${tableName}`);
     }
   }
 
@@ -145,11 +168,10 @@ class AnswerHandler {
     for(const key of Object.keys(this.answerRouter.relatedDataQueries)){
       const queryResults = await this.pool.query(this.answerRouter.relatedDataQueries[key]);
       const nameToIdMap = {}
-
       for(const row of queryResults.rows){
         nameToIdMap[this.getNameValue(row, key)] = row.id;
       }
-
+      
       this.relatedDataMap[key] = nameToIdMap;
     }
     return;
@@ -158,7 +180,6 @@ class AnswerHandler {
   askFollowupQuestions(){
     return inquirer.prompt(this.followupQuestions)
     .then((answers) => {
-
       for(const question of Object.keys(answers)){
         const answer = answers[question];
         let relatedMapKey;
@@ -171,14 +192,18 @@ class AnswerHandler {
         else if(question == 'department_id'){
           relatedMapKey = 'departments';
         }
+        else if(question == 'employee_id'){
+          relatedMapKey = 'employees';
+        }
 
         if(relatedMapKey){
           answers[question] = this.relatedDataMap[relatedMapKey][answer];
+          if(relatedMapKey == 'employees'){
+            this.idOfRecordToUpdate = answers[question];
+          }
         }
       }
-
       this.followupAnswers = answers;
-      console.log(answers)
       return this;
     });
   }
@@ -200,7 +225,7 @@ class AnswerHandler {
     }
   }
 
-  formatValuesForInsert(values){
+  formatValuesForCRUD(values){
 
     const formattedValues = [];
     
@@ -216,15 +241,41 @@ class AnswerHandler {
     return formattedValues.join(',');
   }
 
+  formatFieldsForCRUD(fields){
+
+    const formattedFields = []
+
+    for(const field of fields){
+      if(field == 'employee_id'){
+        formattedFields.push('id');
+      }
+      else{
+        formattedFields.push(field);
+      }
+    }
+
+    return formattedFields.join(',');
+  }
+
   runCRUD() {
 
     if(this.followupAnswers){
 
-      const fields = Object.keys(this.followupAnswers).join(',');
-      const values = this.formatValuesForInsert(Object.values(this.followupAnswers));
-      const formattedCRUDStatement = `${this.CRUDStatement} (${fields}) VALUES (${values}) `;
-      this.completionStatement = this.answerRouter.completionStatement;
+      const fields = this.formatFieldsForCRUD(Object.keys(this.followupAnswers));
+      const values = this.formatValuesForCRUD(Object.values(this.followupAnswers));
+      let formattedCRUDStatement;
+
+      if(this.statementType == 'insert'){
+        formattedCRUDStatement = `${this.CRUDStatement} (${fields}) VALUES (${values}) `;
+      }
+      else if(this.statementType == 'update'){
+        formattedCRUDStatement = (
+          `${this.CRUDStatement} SET (${fields}) = (${values}) ` +
+          `WHERE id = ${this.idOfRecordToUpdate}`
+        );
+      }
       this.CRUDStatement = formattedCRUDStatement;
+      this.completionStatement = this.answerRouter.completionStatement;
     }
 
     return this.pool.query(this.CRUDStatement)
