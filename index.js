@@ -16,8 +16,7 @@ function promptMain(pool) {
     .prompt(AnswerHandler.mainQuestions)
     .then((answerObject) => {
       // Initiatize handler from answers and pool
-      const answerHandler = new AnswerHandler(answerObject.main, pool);
-      return answerHandler;
+      return new AnswerHandler(answerObject.main, pool);
     })
     .then((answerHandler) => {
       if (answerHandler.followupQuestions) {
