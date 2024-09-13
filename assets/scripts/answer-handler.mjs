@@ -260,7 +260,6 @@ class AnswerHandler {
         if (relatedMapKey) {
           // Convert answer selected by user into Id of corresponding related data set
           const relatedDataRecordId = this.relatedDataMap[relatedMapKey][answer];
-          console.log(relatedDataRecordId)
           // If chosen option maps to Id in related data
           if(relatedDataRecordId){
             // Set answer for question to related data Id
@@ -280,7 +279,6 @@ class AnswerHandler {
         }
       }
       // Store all answers in class property
-      console.log(answers);
       this.followupAnswers = answers;
       // Return self for future function calls
       return this;
