@@ -1,11 +1,15 @@
 import inquirer from "inquirer";
 
+// Handler class for answers from main menu loop
 class AnswerHandler {
+  // constructor takes inquirer answer and pool object
   constructor(answer, pool){
-    this.answer = answer;
+    // If answer is "Exit", end the program
     if(answer == 'Exit'){
       process.exit();
     }
+    // Otherwise, assign  properties
+    this.answer = answer;
     this.pool = pool;
     this.answerRouter = this.router[answer];
     this.CRUDStatement = this.answerRouter.statement;
@@ -13,6 +17,25 @@ class AnswerHandler {
     this.relatedDataMap = {};
   }
 
+  static mainQuestions = [
+    {
+      name: "main",
+      message: "Please select an option",
+      type: "list",
+      choices: [
+        "View all departments",
+        "View all roles",
+        "View all employees",
+        "Add a department",
+        "Add a role",
+        "Add an employee",
+        "Update an employee role",
+        "Exit",
+      ],
+    },
+  ];
+
+  // This is a map of answer values to sub-handler objects
   router = {
     "View all departments": {
       statement: 'SELECT id AS "Id", name as "Department Name" FROM departments ORDER BY name',

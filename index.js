@@ -3,25 +3,6 @@ import inquirer from "inquirer";
 import { runSetup } from "./assets/scripts/setup.js";
 import { AnswerHandler } from "./assets/scripts/answer-handler.mjs";
 
-// Variables
-const questionsMain = [
-  {
-    name: "main",
-    message: "Please select an option",
-    type: "list",
-    choices: [
-      "View all departments",
-      "View all roles",
-      "View all employees",
-      "Add a department",
-      "Add a role",
-      "Add an employee",
-      "Update an employee role",
-      "Exit",
-    ],
-  },
-];
-
 // Script
 runSetup().then((pool) => {
   promptMain(pool);
@@ -32,7 +13,7 @@ runSetup().then((pool) => {
 function promptMain(pool) {
   // Begin prompt for main "menu"
   inquirer
-    .prompt(questionsMain)
+    .prompt(AnswerHandler.mainQuestions)
     .then((answerObject) => {
       // Initiatize handler from answers and pool
       const answerHandler = new AnswerHandler(answerObject.main, pool);
