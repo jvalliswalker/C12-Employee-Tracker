@@ -3,6 +3,9 @@ import inquirer from "inquirer";
 class AnswerHandler {
   constructor(answer, pool){
     this.answer = answer;
+    if(answer == 'Exit'){
+      process.exit();
+    }
     this.pool = pool;
     this.answerRouter = this.router[answer];
     this.CRUDStatement = this.answerRouter.statement;
@@ -12,13 +15,14 @@ class AnswerHandler {
 
   router = {
     "View all departments": {
-      statement: 'SELECT id AS "Id", name as "Department Name" FROM departments',
+      statement: 'SELECT id AS "Id", name as "Department Name" FROM departments ORDER BY name',
       statementType: 'query'
     },
     "View all roles": {
       statement: (
         'SELECT r.id AS "Role Id", r.title AS "Title", r.salary AS "Salary", d.name AS "Department Name"'+
-        'FROM roles r JOIN departments d ON r.department_id = d.id'
+        'FROM roles r JOIN departments d ON r.department_id = d.id '+
+        'ORDER BY r.title'
       ),
       statementType: 'query'
     },
@@ -29,7 +33,8 @@ class AnswerHandler {
         'FROM employees e '+
         'INNER JOIN roles r ON e.role_id = r.id '+
         'LEFT JOIN employees ee ON '+
-        'e.manager_id = ee.id'
+        'e.manager_id = ee.id ' +
+        'ORDER BY e.first_name' 
       ),
       statementType: 'query'
     },
@@ -53,7 +58,8 @@ class AnswerHandler {
         {
           name: 'salary',
           message: 'Enter the role\'s salary',
-          type: 'number'
+          type: 'number',
+          validate: this.validateNumber
         },
         {
           name: 'department_id',
@@ -68,7 +74,7 @@ class AnswerHandler {
       completionStatement: 'New role added to database',
       statementType: 'insert',
       relatedDataQueries: {
-        departments: 'SELECT id, name FROM departments'
+        departments: 'SELECT id, name FROM departments ORDER BY name'
       }
     },
     'Add an employee': {
@@ -102,8 +108,8 @@ class AnswerHandler {
       statementType: 'insert',
       completionStatement: 'New employee added to database',
       relatedDataQueries: {
-        roles: 'SELECT id, title FROM roles',
-        employees: 'SELECT id, first_name, last_name FROM employees',
+        roles: 'SELECT id, title FROM roles ORDER BY title',
+        employees: 'SELECT id, first_name, last_name FROM employees ORDER BY first_name',
       }
     },
     "Update an employee role": {
@@ -129,8 +135,8 @@ class AnswerHandler {
       statementType: 'update',
       completionStatement: 'New employee role updated',
       relatedDataQueries: {
-        employees: 'SELECT id, first_name, last_name FROM employees',
-        roles: 'SELECT id, title FROM roles'
+        employees: 'SELECT id, first_name, last_name FROM employees ORDER BY first_name',
+        roles: 'SELECT id, title FROM roles ORDER BY title'
       }
     }
   };
@@ -139,12 +145,19 @@ class AnswerHandler {
     return this.answerRouter.questions;
   }
 
+  validateNumber(value){
+    return typeof value == 'number';
+  }
+
   getNameValue(row, tableName){
     if(tableName == 'employees'){
       return `${row.first_name} ${row.last_name}`;
     }
     if(tableName == 'roles'){
       return row.title;
+    }
+    if(tableName == 'departments'){
+      return row.name
     }
     else{
       throw new Error(`table name not found for ${tableName}`);
