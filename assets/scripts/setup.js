@@ -3,7 +3,37 @@ import { seedData } from "./seeds.js";
 import { readFile, writeFile } from "./utils.js";
 import { connectToDatabase } from "./db-connector.js";
 
-async function setEnvironmentalVariables() {
+// Parent function, handles:
+// - Credentials collection and assignment
+// - Pool connection
+// - Database seeding
+async function runSetup() {
+  // Read contents of local credentials file
+  const credentials = readFile("postgres.env");
+  // Flag if credentials contains flag indicating setup has been run
+  const setupNeeded = !credentials.includes("setup-complete");
+
+  // Call function to collect and set Postgres
+  // environmental variables, if needed
+  if (setupNeeded) {
+    await setupEnvironmentmentalVariables();
+  }
+
+  // Create pool
+  const pool = connectToDatabase();
+
+  // Seed database with data, if needed
+  if (setupNeeded) {
+    seedData(pool);
+  }
+
+  // Return pg pool
+  return pool;
+}
+
+// Collect and set Postgres environmental variables
+async function setupEnvironmentmentalVariables() {
+  // Setup credentials questions
   const questionsCredentials = [
     {
       name: "setup_username",
@@ -15,9 +45,11 @@ async function setEnvironmentalVariables() {
     },
   ];
 
+  // Get credentials via inquirer
   return inquirer
     .prompt(questionsCredentials)
     .then((answers) => {
+      // Set credentials values from answers
       const credentialsData = {
         HOST: "localhost",
         DATABASE: "employee_tracker",
@@ -28,6 +60,7 @@ async function setEnvironmentalVariables() {
       return credentialsData;
     })
     .then((credentialsData) => {
+      // Format credentials data for .env file
       const envString = [
         `USER=${credentialsData.USER}`,
         `PASSWORD=${credentialsData.PASSWORD}`,
@@ -35,35 +68,12 @@ async function setEnvironmentalVariables() {
         `DATABASE=${credentialsData.DATABASE}`,
         "setup-complete",
       ];
-      writeFile(
-        "postgres.env",
-        envString.join("\n"),
-        (writeType = "overwrite")
-      );
+
+      // Write data to local postgres.env
+      writeFile("postgres.env", envString.join("\n"), "overwrite");
 
       return;
     });
 }
 
-async function runSetup() {
-  const credentials = readFile("postgres.env");
-  let setupNeeded = !credentials.includes("setup-complete");
-
-  return setupEnvironment(setupNeeded).then(() => {
-    const pool = connectToDatabase();
-    if (setupNeeded) {
-      seedData(pool);
-    }
-    return pool;
-  });
-}
-
-async function setupEnvironment(setupNeeded) {
-  if (setupNeeded) {
-    return setEnvironmentalVariables();
-  }
-  return;
-}
-
 export { runSetup };
-// module.exports = runSetup;
