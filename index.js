@@ -1,7 +1,9 @@
+// Imports
 import inquirer from "inquirer";
 import { runSetup } from "./assets/scripts/setup.js";
 import { AnswerHandler } from "./assets/scripts/answer-handler.mjs";
 
+// Variables
 const questionsMain = [
   {
     name: "main",
@@ -19,6 +21,13 @@ const questionsMain = [
     ],
   },
 ];
+
+// Script
+runSetup().then((pool) => {
+  promptMain(pool);
+});
+
+// Functions
 
 function promptMain(pool) {
   // Begin prompt for main "menu"
@@ -40,16 +49,11 @@ function promptMain(pool) {
       return answerHandler.runCRUD();
     })
     .then((answerHandler) => {
-      if(answerHandler.completionStatement){
+      if (answerHandler.completionStatement) {
         console.log(answerHandler.completionStatement);
-      }
-      else{
+      } else {
         answerHandler.displayCRUDResults();
       }
       promptMain(pool);
     });
 }
-
-runSetup().then((pool) => {
-  promptMain(pool);
-});
