@@ -49,8 +49,10 @@ async function runSetup() {
   
   return setupEnvironment(setupNeeded)
     .then(() => {
-      const pool = connectToDatabase()
-      seedData(pool)
+      const pool = connectToDatabase();
+      if(setupNeeded){
+        seedData(pool)
+      }
       return pool;
     })
 }
