@@ -17,6 +17,7 @@ class AnswerHandler {
     this.relatedDataMap = {};
   }
 
+  // Main question menu
   static mainQuestions = [
     {
       name: "main",
@@ -35,7 +36,7 @@ class AnswerHandler {
     },
   ];
 
-  // This is a map of answer values to sub-handler objects
+  // Map of answer values to sub-handler objects
   router = {
     "View all departments": {
       statement: 'SELECT id AS "Id", name as "Department Name" FROM departments ORDER BY name',
@@ -168,23 +169,48 @@ class AnswerHandler {
     return this.answerRouter.questions;
   }
 
-  validateNumber(value){
-    return typeof value == 'number';
-  }
-
-  getNameValue(row, tableName){
-    if(tableName == 'employees'){
-      return `${row.first_name} ${row.last_name}`;
-    }
-    if(tableName == 'roles'){
-      return row.title;
-    }
-    if(tableName == 'departments'){
-      return row.name
+  // Handle follow-up questions designated by answerRouter
+  promptFollowup(){
+    // Check if answerRouter contains a related data query
+    if(this.answerRouter.relatedDataQueries){
+      // If so, get related data
+      return this.getRelatedData()
+        .then(() => {
+          // Populate answerRouter follow-up question choices
+          // with returned related data
+          this.populateListQuestionsWithRelatedData();
+        })
+        .then( () => {
+          // Initiate follow-up prompt
+          return this.askFollowupQuestions();
+        });
     }
     else{
-      throw new Error(`table name not found for ${tableName}`);
+      // Initiate follow-up prompt
+      return this.askFollowupQuestions();
     }
+  }
+
+  // Query related data
+  async getRelatedData(){
+    // Loop through queries listed in answerRouter 
+    for(const key of Object.keys(this.answerRouter.relatedDataQueries)){
+      // Call query and store in loop variable
+      const queryResults = await this.pool.query(this.answerRouter.relatedDataQueries[key]);
+      const nameToIdMap = {}
+
+      // Store each row from query results
+      for(const row of queryResults.rows){
+        // Get "name" field from table from getNameValue()
+        const nameEquivalentField = this.getNameValue(row, key);
+        // Store in local map 
+        nameToIdMap[nameEquivalentField] = row.id;
+      }
+      
+      // Store loop nameToIdMap in class property
+      this.relatedDataMap[key] = nameToIdMap;
+    }
+    return;
   }
 
   populateListQuestionsWithRelatedData(){
@@ -197,20 +223,6 @@ class AnswerHandler {
         question.choices = [].concat(question.choices, keys);
       }
     }
-  }
-
-  async getRelatedData(){
-
-    for(const key of Object.keys(this.answerRouter.relatedDataQueries)){
-      const queryResults = await this.pool.query(this.answerRouter.relatedDataQueries[key]);
-      const nameToIdMap = {}
-      for(const row of queryResults.rows){
-        nameToIdMap[this.getNameValue(row, key)] = row.id;
-      }
-      
-      this.relatedDataMap[key] = nameToIdMap;
-    }
-    return;
   }
 
   askFollowupQuestions(){
@@ -244,22 +256,53 @@ class AnswerHandler {
     });
   }
 
+  runCRUD() {
 
+    if(this.followupAnswers){
 
-  promptFollowup(){
-    if(this.answerRouter.relatedDataQueries){
-      return this.getRelatedData()
-        .then(() => {
-          this.populateListQuestionsWithRelatedData();
-        })
-        .then( () => {
-          return this.askFollowupQuestions();
-        });
+      const fields = this.formatFieldsForCRUD(Object.keys(this.followupAnswers));
+      const values = this.formatValuesForCRUD(Object.values(this.followupAnswers));
+      let formattedCRUDStatement;
+
+      if(this.statementType == 'insert'){
+        formattedCRUDStatement = `${this.CRUDStatement} (${fields}) VALUES (${values}) `;
+      }
+      else if(this.statementType == 'update'){
+        formattedCRUDStatement = (
+          `${this.CRUDStatement} SET (${fields}) = (${values}) ` +
+          `WHERE id = ${this.idOfRecordToUpdate}`
+        );
+      }
+      this.CRUDStatement = formattedCRUDStatement;
+      this.completionStatement = this.answerRouter.completionStatement;
+    }
+
+    return this.pool.query(this.CRUDStatement)
+      .then((data) => {
+        this.CRUDStatementData = data.rows;
+        return this;
+      });
+  }
+
+  getNameValue(row, tableName){
+    if(tableName == 'employees'){
+      return `${row.first_name} ${row.last_name}`;
+    }
+    if(tableName == 'roles'){
+      return row.title;
+    }
+    if(tableName == 'departments'){
+      return row.name
     }
     else{
-      return this.askFollowupQuestions();
+      throw new Error(`table name not found for ${tableName}`);
     }
   }
+
+  validateNumber(value){
+    return typeof value == 'number';
+  }
+
 
   formatValuesForCRUD(values){
 
@@ -291,34 +334,6 @@ class AnswerHandler {
     }
 
     return formattedFields.join(',');
-  }
-
-  runCRUD() {
-
-    if(this.followupAnswers){
-
-      const fields = this.formatFieldsForCRUD(Object.keys(this.followupAnswers));
-      const values = this.formatValuesForCRUD(Object.values(this.followupAnswers));
-      let formattedCRUDStatement;
-
-      if(this.statementType == 'insert'){
-        formattedCRUDStatement = `${this.CRUDStatement} (${fields}) VALUES (${values}) `;
-      }
-      else if(this.statementType == 'update'){
-        formattedCRUDStatement = (
-          `${this.CRUDStatement} SET (${fields}) = (${values}) ` +
-          `WHERE id = ${this.idOfRecordToUpdate}`
-        );
-      }
-      this.CRUDStatement = formattedCRUDStatement;
-      this.completionStatement = this.answerRouter.completionStatement;
-    }
-
-    return this.pool.query(this.CRUDStatement)
-      .then((data) => {
-        this.CRUDStatementData = data.rows;
-        return this;
-      });
   }
 
   displayCRUDResults() {
