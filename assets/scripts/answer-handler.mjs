@@ -82,8 +82,7 @@ class AnswerHandler {
         {
           name: 'salary',
           message: 'Enter the role\'s salary',
-          type: 'number',
-          validate: this.validateNumber
+          type: 'number'
         },
         {
           name: 'department_id',
@@ -169,6 +168,10 @@ class AnswerHandler {
     return this.answerRouter.questions;
   }
 
+  // ===============
+  // Process Methods
+  // ===============
+
   // Handle follow-up questions designated by answerRouter
   promptFollowup(){
     // Check if answerRouter contains a related data query
@@ -213,11 +216,16 @@ class AnswerHandler {
     return;
   }
 
+  // Populate "choice" values for follow-up prompt
+  // from related data from query
   populateListQuestionsWithRelatedData(){
+    // Get follow-up questions from answerRouter
+    const followupPromptQuestions = this.answerRouter.questions;
 
-    const questions = this.answerRouter.questions;
-
-    for(const question of questions){
+    // Loop through follow-up questions
+    for(const question of followupPromptQuestions){
+      // If question is of type list, assign corresponding related
+      // data queried earlier to "choices" property of question
       if(question.type == 'list'){
         const keys = Object.keys(this.relatedDataMap[question.relatedDataName]);
         question.choices = [].concat(question.choices, keys);
@@ -225,11 +233,17 @@ class AnswerHandler {
     }
   }
 
+  // Begin new inquirer.prompt for follow-up questions
   askFollowupQuestions(){
+    // Begin prompt
     return inquirer.prompt(this.followupQuestions)
     .then((answers) => {
+      // Loop through returned question and answers 
       for(const question of Object.keys(answers)){
         const answer = answers[question];
+
+        // Determine and store which related data collection
+        // the current question belongs to (if applicable)
         let relatedMapKey;
         if(question == 'role_id'){
           relatedMapKey = 'roles';
@@ -244,46 +258,71 @@ class AnswerHandler {
           relatedMapKey = 'employees';
         }
 
+        // If question relates to related data
         if(relatedMapKey){
+          // Convert answer selected by user into Id of corresponding related data set
           answers[question] = this.relatedDataMap[relatedMapKey][answer];
+
+          // Special handling for update option
           if(relatedMapKey == 'employees'){
+            // Store Id of record to update in class property 
             this.idOfRecordToUpdate = answers[question];
           }
         }
       }
+      // Store all answers in class property
       this.followupAnswers = answers;
+      // Return self for future function calls
       return this;
     });
   }
 
+  // Run the designated Cread/Read/Edit/Delete function
   runCRUD() {
 
     if(this.followupAnswers){
-
+      // Format fields and values for CRUD statement
       const fields = this.formatFieldsForCRUD(Object.keys(this.followupAnswers));
       const values = this.formatValuesForCRUD(Object.values(this.followupAnswers));
       let formattedCRUDStatement;
 
+      // Format CRUD statement for insert
       if(this.statementType == 'insert'){
         formattedCRUDStatement = `${this.CRUDStatement} (${fields}) VALUES (${values}) `;
       }
+      // Format CRUD statement for update
       else if(this.statementType == 'update'){
         formattedCRUDStatement = (
           `${this.CRUDStatement} SET (${fields}) = (${values}) ` +
           `WHERE id = ${this.idOfRecordToUpdate}`
         );
       }
+      // Store info in class properties
       this.CRUDStatement = formattedCRUDStatement;
       this.completionStatement = this.answerRouter.completionStatement;
     }
 
+    // Run statement in pool query
     return this.pool.query(this.CRUDStatement)
       .then((data) => {
+        // Store returned data in class property
         this.CRUDStatementData = data.rows;
+        // Return self for future function calls
         return this;
       });
   }
 
+  // Display results of CRUD statement in console
+  displayCRUDResults() {
+    console.table(this.CRUDStatementData);
+  }
+
+  // ==============
+  // Helper Methods
+  // ==============
+
+  // Heper method, determines which field should be used to populate 
+  // text displayed to user in question choice list
   getNameValue(row, tableName){
     if(tableName == 'employees'){
       return `${row.first_name} ${row.last_name}`;
@@ -299,13 +338,8 @@ class AnswerHandler {
     }
   }
 
-  validateNumber(value){
-    return typeof value == 'number';
-  }
-
-
+  // Format answers from prompt for SQL statement 
   formatValuesForCRUD(values){
-
     const formattedValues = [];
     
     for(const value of values){
@@ -320,6 +354,7 @@ class AnswerHandler {
     return formattedValues.join(',');
   }
 
+  // Format fields from prompt questions for SQL statement
   formatFieldsForCRUD(fields){
 
     const formattedFields = []
@@ -334,10 +369,6 @@ class AnswerHandler {
     }
 
     return formattedFields.join(',');
-  }
-
-  displayCRUDResults() {
-    console.table(this.CRUDStatementData);
   }
 }
 
