@@ -20,7 +20,7 @@ async function runSetup() {
   }
 
   // Create pool
-  const pool = connectToDatabase();
+  const pool = await connectToDatabase();
 
   // Seed database with data, if needed
   if (setupNeeded) {

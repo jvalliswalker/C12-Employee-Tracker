@@ -6,12 +6,14 @@ const __dirname = path.dirname(__filename);
 const localpath = __dirname.replace(/assets.scripts/, '');
 import dotenv from 'dotenv' 
 
-dotenv.config({
-  override: true,
-  path: path.join(localpath, 'postgres.env')
-});
 
-const connectToDatabase = () => {
+async function connectToDatabase() {
+  
+  dotenv.config({
+    override: true,
+    path: path.join(localpath, 'postgres.env')
+  });
+  
   const newPool = new pg.Pool({
     user: process.env.USER,
     password: process.env.PASSWORD,
@@ -21,9 +23,19 @@ const connectToDatabase = () => {
   console.log('Connected to database employee_tracker')
   );
 
-  newPool.connect();
-
-  return newPool;
+  try {
+    await newPool.connect();
+    return newPool;
+  }
+  catch (error){
+    throw new Error(
+      [
+        '',
+        '=========== Authentication Error =========',
+        'Postgres credentials incorrect - could not connect to Postgres database. Review file postgres.env and correct credentials.',
+        '=========================================='
+      ].join('\n'));
+  }
 }
 
 export { connectToDatabase }
