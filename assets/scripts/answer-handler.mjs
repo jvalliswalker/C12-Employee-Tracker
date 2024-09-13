@@ -259,16 +259,28 @@ class AnswerHandler {
         // If question relates to related data
         if (relatedMapKey) {
           // Convert answer selected by user into Id of corresponding related data set
-          answers[question] = this.relatedDataMap[relatedMapKey][answer];
+          const relatedDataRecordId = this.relatedDataMap[relatedMapKey][answer];
+          console.log(relatedDataRecordId)
+          // If chosen option maps to Id in related data
+          if(relatedDataRecordId){
+            // Set answer for question to related data Id
+            answers[question] = relatedDataRecordId;
 
-          // Special handling for update option
-          if (relatedMapKey == "employees") {
-            // Store Id of record to update in class property
-            this.idOfRecordToUpdate = answers[question];
+            // Special handling for update option
+            if (relatedMapKey == "employees") {
+              // Store Id of record to update in class property
+              this.idOfRecordToUpdate = answers[question];
+            }
+          }
+          // If choice has no equivalent Id in related data
+          else {
+            // Remove question and answer from consideration
+            delete answers[question];
           }
         }
       }
       // Store all answers in class property
+      console.log(answers);
       this.followupAnswers = answers;
       // Return self for future function calls
       return this;
@@ -343,7 +355,8 @@ class AnswerHandler {
     for (const value of values) {
       if (typeof value == "string") {
         formattedValues.push(`'${value}'`);
-      } else {
+      } 
+      else {
         formattedValues.push(value);
       }
     }
