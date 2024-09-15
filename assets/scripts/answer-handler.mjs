@@ -33,6 +33,7 @@ class AnswerHandler {
         "Update an employee role",
         "Exit",
       ],
+      pageSize: 8 
     },
   ];
 
