@@ -52,13 +52,17 @@ class AnswerHandler {
     },
     "View all employees": {
       statement:
-        'SELECT e.id AS "Employee Id", e.first_name AS "First Name", e.last_name AS "Last Name", ' +
-        'r.title AS "Title", r.salary AS "Salary", concat_ws(\' \',ee.first_name, ee.last_name) AS "Manager" ' +
-        "FROM employees e " +
-        "INNER JOIN roles r ON e.role_id = r.id " +
-        "LEFT JOIN employees ee ON " +
-        "e.manager_id = ee.id " +
-        "ORDER BY e.first_name",
+        [
+          'SELECT e.id AS "Employee Id", e.first_name AS "First Name", e.last_name AS "Last Name", ',
+          'r.title AS "Title", d.name AS "Department", r.salary AS "Salary",',
+          'concat_ws(\' \',ee.first_name, ee.last_name) AS "Manager"',
+          'FROM employees e',
+          'INNER JOIN roles r ON e.role_id = r.id',
+          'LEFT JOIN employees ee ON',
+          'e.manager_id = ee.id ',
+          'LEFT JOIN departments d ON r.department_id = d.id',
+          'ORDER BY e.first_name'
+        ].join(' '),
       statementType: "query",
     },
     "Add a department": {
