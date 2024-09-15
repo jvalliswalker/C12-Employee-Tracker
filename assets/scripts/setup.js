@@ -42,6 +42,7 @@ async function setupEnvironmentmentalVariables() {
     {
       name: "setup_password",
       message: "Please enter your postgres password",
+      type: 'password'
     },
   ];
 
