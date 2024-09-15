@@ -1,4 +1,5 @@
 import inquirer from "inquirer";
+import chalk from 'chalk';
 
 // Handler class for answers from main menu loop
 class AnswerHandler {
@@ -323,7 +324,11 @@ class AnswerHandler {
       this.CRUDStatementData = data.rows;
       // Return self for future function calls
       return this;
-    });
+    })
+    .catch(error => {
+      console.log(chalk.yellow(`Error: ${error.message}. Insert/Update cancelled.`));
+      return this;
+    })
   }
 
   // Display results of CRUD statement in console
