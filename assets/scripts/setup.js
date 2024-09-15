@@ -1,5 +1,5 @@
 import inquirer from "inquirer";
-import { seedData } from "./seeds.js";
+import { seedData } from "./seeds.mjs";
 import { readFile, writeFile } from "./utils.js";
 import { connectToDatabase } from "./db-connector.js";
 
