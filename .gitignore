@@ -1,1 +1,5 @@
 **/node_modules/*
+
+# Add authentication exclusion
+credentials/*
+!credentials/credentials-template.json
