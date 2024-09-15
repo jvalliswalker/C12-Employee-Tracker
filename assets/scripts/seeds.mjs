@@ -1,7 +1,4 @@
 import { readFile } from "./utils.js";
-import { connectToDatabase } from "./db-connector.js";
-
-seedData(await connectToDatabase());
 
 async function seedData(pool) {
   const seedData = {};
